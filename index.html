@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digit Match</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #0b0f19;
+            color: #f8fafc;
+            padding: 20px;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #3b82f6;
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: #131b2e;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #1e293b;
+        }
+        .label {
+            color: #94a3b8;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .mode-group {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .mode-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #1e293b;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #94a3b8;
+            border: 2px solid transparent;
+        }
+        .mode-group label.active {
+            border-color: #8b5cf6;
+            background: #2e1065;
+            color: #c4b5fd;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-start {
+            background: #10b981;
+            color: white;
+        }
+        .btn-start:hover:not(:disabled) {
+            background: #059669;
+        }
+        .btn-stop {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-stop:hover:not(:disabled) {
+            background: #dc2626;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #1e293b;
+        }
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .badge-idle {
+            background: #475569;
+        }
+        .badge-running {
+            background: #10b981;
+        }
+        .badge-sim {
+            background: #8b5cf6;
+        }
+        .badge-error {
+            background: #ef4444;
+        }
+        .status-text {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-left: 8px;
+        }
+        .buffer-text {
+            color: #94a3b8;
+            font-size: 12px;
+        }
+        .signal-box {
+            background: #0f1a2f;
+            border-left: 4px solid #3b82f6;
+            padding: 14px;
+            border-radius: 8px;
+            margin-top: 12px;
+            display: none;
+        }
+        .signal-box.show {
+            display: block;
+        }
+        .signal-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3px 0;
+        }
+        .digit-big {
+            font-size: 30px;
+            font-weight: 700;
+            color: #10b981;
+            background: #0b1a1a;
+            padding: 0 14px;
+            border-radius: 30px;
+            border: 1px solid #1e3a3a;
+            min-width: 50px;
+            text-align: center;
+        }
+        .conf-big {
+            font-size: 20px;
+            color: #fbbf24;
+            font-weight: 700;
+        }
+        .log-box {
+            background: #070a12;
+            border-radius: 8px;
+            padding: 10px 12px;
+            height: 140px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 11px;
+            line-height: 1.8;
+            border: 1px solid #1e293b;
+            margin-top: 10px;
+        }
+        .log-box::-webkit-scrollbar {
+            width: 4px;
+        }
+        .log-box::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .log-info {
+            color: #60a5fa;
+        }
+        .log-success {
+            color: #34d399;
+        }
+        .log-error {
+            color: #f87171;
+        }
+        .log-sim {
+            color: #a78bfa;
+        }
+        .log-signal {
+            color: #f472b6;
+            font-weight: bold;
+        }
+        .mt-2 {
+            margin-top: 10px;
+        }
+        .text-muted {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        .flex {
+            display: flex;
+            align-items: center;
+        }
+        .gap-2 {
+            gap: 8px;
+        }
+        .gap-4 {
+            gap: 16px;
+        }
+        .justify-between {
+            justify-content: space-between;
+        }
+        .hidden {
+            display: none;
+        }
+        .mt-1 {
+            margin-top: 6px;
+        }
+        /* Mobile friendly */
+        @media (max-width: 400px) {
+            .mode-group label {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+            .btn {
+                font-size: 13px;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎯 DIGIT MATCH</h1>
+    <div class="subtitle">Real-time digit prediction for volatility trading</div>
+
+    <!-- Controls -->
+    <div class="card">
+        <div class="label">📊 Select Market</div>
+        <select id="symbolSelect">
+            <option value="1HZ10V">Volatility 10 (1s)</option>
+            <option value="1HZ25V">Volatility 25 (1s)</option>
+            <option value="1HZ50V">Volatility 50 (1s)</option>
+            <option value="1HZ75V" selected>Volatility 75 (1s) ⭐</option>
+            <option value="1HZ100V">Volatility 100 (1s)</option>
+            <option value="R_10">Volatility 10</option>
+            <option value="R_25">Volatility 25</option>
+            <option value="R_50">Volatility 50</option>
+            <option value="R_75">Volatility 75</option>
+            <option value="R_100">Volatility 100</option>
+        </select>
+
+        <div class="mode-group">
+            <label id="simLabel" class="active">
+                <input type="radio" name="mode" value="sim" checked> 🎮 Simulation
+            </label>
+            <label id="realLabel">
+                <input type="radio" name="mode" value="real"> 🌐 Live Data
+            </label>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">▶ Start</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>⏹ Stop</button>
+        </div>
+    </div>
+
+    <!-- Status -->
+    <div class="card">
+        <div class="status-bar">
+            <div class="flex gap-2">
+                <span class="badge badge-idle" id="statusBadge">Idle</span>
+                <span class="status-text" id="statusText">Ready</span>
+            </div>
+            <span class="buffer-text" id="bufferDisplay">buffer: 0/100</span>
+        </div>
+
+        <!-- Signal Display -->
+        <div class="signal-box" id="signalBox">
+            <div class="signal-row">
+                <span>🎯 Predicted Digit</span>
+                <span class="digit-big" id="digitDisplay">—</span>
+            </div>
+            <div class="signal-row mt-1">
+                <span>📈 Confidence</span>
+                <span class="conf-big" id="confDisplay">—%</span>
+            </div>
+            <div class="signal-row mt-1" style="border-top:1px solid #1e293b;padding-top:6px;">
+                <span class="text-muted" id="hitRateDisplay">Hit rate: —</span>
+                <span class="text-muted" id="sampleDisplay">buffer: 0/100</span>
+            </div>
+        </div>
+
+        <!-- Log -->
+        <div class="log-box" id="logBox">
+            <div class="log-info">[System] Welcome to Digit Match</div>
+            <div class="log-info">[System] Click "Start" to begin</div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // SIMPLE, RELIABLE VERSION
+        // ============================================
+
+        // Get all elements
+        var logBox = document.getElementById('logBox');
+        var statusBadge = document.getElementById('statusBadge');
+        var statusText = document.getElementById('statusText');
+        var signalBox = document.getElementById('signalBox');
+        var digitDisplay = document.getElementById('digitDisplay');
+        var confDisplay = document.getElementById('confDisplay');
+        var hitRateDisplay = document.getElementById('hitRateDisplay');
+        var sampleDisplay = document.getElementById('sampleDisplay');
+        var bufferDisplay = document.getElementById('bufferDisplay');
+        var symbolSelect = document.getElementById('symbolSelect');
+        var startBtn = document.getElementById('startBtn');
+        var stopBtn = document.getElementById('stopBtn');
+        var simLabel = document.getElementById('simLabel');
+        var realLabel = document.getElementById('realLabel');
+        var modeRadios = document.querySelectorAll('input[name="mode"]');
+
+        // State
+        var digits = [];
+        var SAMPLE_SIZE = 100;
+        var isRunning = false;
+        var isSimulating = false;
+        var simTimer = null;
+        var ws = null;
+        var wsPing = null;
+        var tickCount = 0;
+
+        // ---- Logging ----
+        function log(msg, type) {
+            type = type || 'info';
+            var time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            var cls = 'log-info';
+            if (type === 'success') cls = 'log-success';
+            else if (type === 'error') cls = 'log-error';
+            else if (type === 'sim') cls = 'log-sim';
+            else if (type === 'signal') cls = 'log-signal';
+            logBox.innerHTML += '<div class="' + cls + '">[' + time + '] ' + msg + '</div>';
+            logBox.scrollTop = logBox.scrollHeight;
+            if (logBox.children.length > 120) {
+                var items = logBox.innerHTML.split('</div>');
+                logBox.innerHTML = items.slice(-90).join('</div>');
+            }
+        }
+
+        // ---- Status ----
+        function setStatus(state, text) {
+            var badgeClass = 'badge-idle';
+            var label = 'Idle';
+            if (state === 'running') { badgeClass = 'badge-running';
+                label = 'Running'; } else if (state === 'sim') { badgeClass = 'badge-sim';
+                label = 'Simulating'; } else if (state === 'error') { badgeClass = 'badge-error';
+                label = 'Error'; }
+            statusBadge.className = 'badge ' + badgeClass;
+            statusBadge.textContent = label;
+            statusText.textContent = text || '';
+        }
+
+        // ---- Signal Display ----
+        function updateSignal(digit, percentage) {
+            signalBox.className = 'signal-box show';
+            digitDisplay.textContent = (digit !== undefined) ? digit : '—';
+            if (percentage !== undefined) {
+                var conf = Math.min(96, Math.max(48, 52 + ((percentage - 10) * 3.2)));
+                confDisplay.textContent = conf.toFixed(1) + '%';
+                hitRateDisplay.textContent = 'Hit rate: ' + percentage.toFixed(1) + '%';
+            } else {
+                confDisplay.textContent = '—%';
+                hitRateDisplay.textContent = 'Hit rate: —';
+            }
+            var len = digits.length;
+            sampleDisplay.textContent = 'buffer: ' + len + '/' + SAMPLE_SIZE;
+            bufferDisplay.textContent = 'buffer: ' + len + '/' + SAMPLE_SIZE;
+            if (percentage !== undefined && percentage >= 13.0 && isRunning) {
+                log('🔔 SIGNAL: Digit ' + digit + ' at ' + percentage.toFixed(1) + '%', 'signal');
+            }
+        }
+
+        function resetSignal() {
+            signalBox.className = 'signal-box';
+            digitDisplay.textContent = '—';
+            confDisplay.textContent = '—%';
+            hitRateDisplay.textContent = 'Hit rate: —';
+            var len = digits.length;
+            sampleDisplay.textContent = 'buffer: ' + len + '/' + SAMPLE_SIZE;
+            bufferDisplay.textContent = 'buffer: ' + len + '/' + SAMPLE_SIZE;
+        }
+
+        // ---- Analysis ----
+        function analyze() {
+            if (digits.length < SAMPLE_SIZE) {
+                updateSignal(undefined, undefined);
+                return;
+            }
+            var counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            for (var i = 0; i < digits.length; i++) {
+                var d = digits[i];
+                if (d >= 0 && d <= 9) counts[d]++;
+            }
+            var maxCount = -1;
+            var hotDigit = 0;
+            for (var j = 0; j < 10; j++) {
+                if (counts[j] > maxCount) {
+                    maxCount = counts[j];
+                    hotDigit = j;
+                }
+            }
+            var percentage = (maxCount / SAMPLE_SIZE) * 100;
+            updateSignal(hotDigit, percentage);
+        }
+
+        function addDigit(digit) {
+            if (!isRunning) return;
+            digits.push(digit);
+            if (digits.length > SAMPLE_SIZE) {
+                digits.shift();
+            }
+            analyze();
+        }
+
+        // ---- Simulation ----
+        function runSimulation() {
+            if (isRunning) {
+                log('Already running. Stop first.', 'error');
+                return;
+            }
+            stopAll();
+            isRunning = true;
+            isSimulating = true;
+            digits = [];
+            tickCount = 0;
+            resetSignal();
+            setStatus('sim', 'generating data...');
+            log('🎮 Starting simulation...', 'sim');
+            log('📊 Generating synthetic market data', 'sim');
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            var price = 10000 + Math.random() * 5000;
+            var count = 0;
+
+            simTimer = setInterval(function() {
+                if (!isRunning || !isSimulating) {
+                    clearInterval(simTimer);
+                    return;
+                }
+                var vol = 0.001 + Math.random() * 0.005;
+                var dir = Math.random() > 0.5 ? 1 : -1;
+                var move = (Math.random() * 2 + 0.5) * vol * price * dir;
+                price = Math.max(1000, price + move);
+                price += (Math.random() - 0.5) * 2;
+                var str = price.toFixed(2);
+                var clean = str.replace('-', '').replace('.', '');
+                if (clean.length > 0) {
+                    var digit = parseInt(clean.slice(-1), 10);
+                    if (!isNaN(digit) && digit >= 0 && digit <= 9) {
+                        addDigit(digit);
+                        count++;
+                        if (count % 20 === 0) {
+                            log('📊 ' + count + ' simulated ticks', 'sim');
+                        }
+                    }
+                }
+            }, 250);
+            log('✅ Simulation running!', 'success');
+        }
+
+        // ---- Real Connection ----
+        function runReal() {
+            if (isRunning) {
+                log('Already running. Stop first.', 'error');
+                return;
+            }
+            stopAll();
+            var symbol = symbolSelect.value;
+            isRunning = true;
+            isSimulating = false;
+            digits = [];
+            tickCount = 0;
+            resetSignal();
+            setStatus('connecting', 'connecting to ' + symbol + '...');
+            log('🌐 Connecting to ' + symbol + '...', 'info');
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            try {
+                ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+                var timeout = setTimeout(function() {
+                    if (ws && ws.readyState !== WebSocket.OPEN) {
+                        log('❌ Connection timeout', 'error');
+                        setStatus('error', 'timeout');
+                        stopAll();
+                        startBtn.disabled = false;
+                        stopBtn.disabled = true;
+                    }
+                }, 8000);
+
+                ws.onopen = function() {
+                    clearTimeout(timeout);
+                    log('✅ Connected to Deriv', 'success');
+                    setStatus('running', 'live · ' + symbol);
+                    ws.send(JSON.stringify({ ticks: symbol, subscribe: 1 }));
+                    log('📡 Subscribed to ' + symbol, 'info');
+                    if (wsPing) clearInterval(wsPing);
+                    wsPing = setInterval(function() {
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({ ping: 1 }));
+                        }
+                    }, 20000);
+                };
+
+                ws.onmessage = function(ev) {
+                    try {
+                        var data = JSON.parse(ev.data);
+                        if (data.error) {
+                            log('❌ API: ' + (data.error.message || 'Error'), 'error');
+                            setStatus('error', 'invalid symbol');
+                            return;
+                        }
+                        if (data.msg_type === 'tick' && data.tick && data.tick.quote !== undefined) {
+                            tickCount++;
+                            if (tickCount === 1) {
+                                log('📊 First tick received!', 'success');
+                            }
+                            var quote = String(data.tick.quote);
+                            var clean = quote.replace('-', '').replace('.', '');
+                            if (clean.length > 0) {
+                                var digit = parseInt(clean.slice(-1), 10);
+                                if (!isNaN(digit) && digit >= 0 && digit <= 9) {
+                                    addDigit(digit);
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                };
+
+                ws.onerror = function() {
+                    log('⚠️ WebSocket error', 'error');
+                    setStatus('error', 'connection error');
+                };
+
+                ws.onclose = function() {
+                    if (wsPing) clearInterval(wsPing);
+                    if (isRunning && !isSimulating) {
+                        log('⚠️ Connection lost', 'error');
+                        setStatus('error', 'disconnected');
+                        startBtn.disabled = false;
+                        stopBtn.disabled = true;
+                    }
+                };
+            } catch (e) {
+                log('❌ Error: ' + e.message, 'error');
+                setStatus('error', 'failed');
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        }
+
+        // ---- Stop ----
+        function stopAll() {
+            isRunning = false;
+           
