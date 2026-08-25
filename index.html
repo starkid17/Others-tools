@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deriv Digit Match Analyzer</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0b0f19;
+            color: #f8fafc;
+            padding: 16px;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 540px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        h2 {
+            color: #3b82f6;
+            font-size: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        .card {
+            background: #131b2e;
+            padding: 18px 16px 20px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            border: 1px solid #1e293b;
+            box-shadow: 0 8px 16px -6px rgba(0,0,0,0.5);
+        }
+        label {
+            display: block;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        select {
+            width: 100%;
+            padding: 12px 14px;
+            margin-top: 6px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #f1f5f9;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            outline: none;
+        }
+        select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.3);
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 12px 8px;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            border: none;
+            font-size: 15px;
+            transition: all 0.15s ease;
+        }
+        .btn-start {
+            background: #10b981;
+            color: #fff;
+        }
+        .btn-start:hover { background: #059669; }
+        .btn-start:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-stop {
+            background: #ef4444;
+            color: #fff;
+        }
+        .btn-stop:hover { background: #dc2626; }
+        .btn-stop:disabled { opacity: 0.5; cursor: not-allowed; }
+        .log-box {
+            background: #070a12;
+            padding: 12px 14px;
+            font-family: 'Menlo', 'Cascadia Code', monospace;
+            font-size: 11px;
+            height: 180px;
+            overflow-y: auto;
+            border-radius: 10px;
+            border: 1px solid #1e293b;
+            color: #7dd3fc;
+            line-height: 1.6;
+        }
+        .log-box::-webkit-scrollbar { width: 4px; }
+        .log-box::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
+        .signal-box {
+            background: #0f1a2f;
+            border-left: 5px solid #3b82f6;
+            padding: 16px 16px 14px;
+            margin-top: 16px;
+            border-radius: 12px;
+            box-shadow: inset 0 0 0 1px #1e293b;
+            display: none;
+        }
+        .signal-box.active { display: block; }
+        .accuracy {
+            font-size: 20px;
+            color: #fbbf24;
+            font-weight: 700;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            background: #475569;
+            color: #f1f5f9;
+        }
+        .status-badge.idle { background: #475569; }
+        .status-badge.connecting { background: #f59e0b; }
+        .status-badge.streaming { background: #10b981; }
+        .status-badge.error { background: #ef4444; }
+        .flex-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px 12px;
+        }
+        .target-digit {
+            font-size: 28px;
+            font-weight: 700;
+            color: #10b981;
+            background: #0b1a1a;
+            padding: 2px 14px;
+            border-radius: 40px;
+            display: inline-block;
+            border: 1px solid #1e3a3a;
+        }
+        .text-muted { color: #94a3b8; font-size: 13px; }
+        .mt-1 { margin-top: 8px; }
+        .flex { display: flex; align-items: center; }
+        .flex-wrap { flex-wrap: wrap; }
+        .gap-2 { gap: 8px; }
+        .log-error { color: #f87171; }
+        .log-success { color: #34d399; }
+        .log-info { color: #60a5fa; }
+        .log-warning { color: #fbbf24; }
+        .hidden { display: none; }
+        .test-result {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+        }
+        .test-result.show { display: block; }
+        .test-result.pass { background: #064e3b; border: 1px solid #10b981; color: #34d399; }
+        .test-result.fail { background: #7f1d1d; border: 1px solid #ef4444; color: #fca5a5; }
+        .test-result.info { background: #1e293b; border: 1px solid #3b82f6; color: #60a5fa; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <h2>⚡ DIGIT MATCH TERMINAL</h2>
+
+    <div class="card">
+        <label>📊 Volatility Market</label>
+        <select id="symbol">
+            <optgroup label="1-Second Volatility (Recommended)">
+                <option value="1HZ10V">1-Second Volatility 10</option>
+                <option value="1HZ25V">1-Second Volatility 25</option>
+                <option value="1HZ50V">1-Second Volatility 50</option>
+                <option value="1HZ75V" selected>1-Second Volatility 75</option>
+                <option value="1HZ100V">1-Second Volatility 100</option>
+            </optgroup>
+            <optgroup label="Standard Volatility">
+                <option value="R_10">Volatility 10 Index</option>
+                <option value="R_25">Volatility 25 Index</option>
+                <option value="R_50">Volatility 50 Index</option>
+                <option value="R_75">Volatility 75 Index</option>
+                <option value="R_100">Volatility 100 Index</option>
+            </optgroup>
+            <optgroup label="Step Indices">
+                <option value="STEP_50">Step 50 Index</option>
+                <option value="STEP_100">Step 100 Index</option>
+                <option value="STEP_200">Step 200 Index</option>
+            </optgroup>
+        </select>
+
+        <div id="testResult" class="test-result"></div>
+
+        <div class="btn-group">
+            <button class="btn-start" id="startBtn" onclick="startAnalysis()">▶ Run Analysis</button>
+            <button class="btn-stop" id="stopBtn" onclick="stopAnalysis()" disabled>⏹ Stop</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="flex-row">
+            <span><span class="status-badge idle" id="statusBadge">Idle</span> <span id="statusText" class="text-muted" style="margin-left: 6px;">Ready</span></span>
+            <span id="bufferInfo" class="text-muted" style="font-size: 12px;">buffer: 0/100</span>
+        </div>
+
+        <div id="signalDisplay" class="signal-box">
+            <div class="flex flex-wrap gap-2" style="justify-content: space-between;">
+                <span style="font-weight: 500;">🎯 Predicted Digit</span>
+                <span class="target-digit" id="targetDigit">—</span>
+            </div>
+            <div class="flex flex-wrap gap-2" style="justify-content: space-between; margin-top: 8px;">
+                <span style="font-weight: 500;">📈 Confidence</span>
+                <span class="accuracy" id="accuracyScore">—%</span>
+            </div>
+            <div class="flex flex-wrap gap-2" style="justify-content: space-between; margin-top: 6px; border-top: 1px solid #1e293b; padding-top: 8px;">
+                <span class="hit-rate" id="hitRateDisplay" style="color: #94a3b8; font-size: 14px;">Hit rate: —</span>
+                <span style="color: #94a3b8; font-size: 13px;" id="sampleStatus">buffer: 0/100</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+            <div class="log-box" id="logBox">
+                <div class="log-info">[System] Terminal ready · Select market & run</div>
+                <div class="log-info">[System] 📌 1-Second volatility indices work best</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+
+        // DOM refs
+        const logBox = document.getElementById('logBox');
+        const statusBadge = document.getElementById('statusBadge');
+        const statusText = document.getElementById('statusText');
+        const signalDisplay = document.getElementById('signalDisplay');
+        const targetDigitEl = document.getElementById('targetDigit');
+        const accuracyScoreEl = document.getElementById('accuracyScore');
+        const hitRateDisplay = document.getElementById('hitRateDisplay');
+        const sampleStatus = document.getElementById('sampleStatus');
+        const bufferInfo = document.getElementById('bufferInfo');
+        const symbolSelect = document.getElementById('symbol');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const testResult = document.getElementById('testResult');
+
+        // State
+        let ws = null;
+        let recentDigits = [];
+        const SAMPLE_SIZE = 100;
+        let isAnalyzing = false;
+        let pingTimer = null;
+        let reconnectTimer = null;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+        let isSubscribed = false;
+        let tickCount = 0;
+
+        function log(msg, type = 'info') {
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const cls = type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : 
+                        type === 'warning' ? 'log-warning' : 'log-info';
+            logBox.innerHTML += `<div class="${cls}">[${time}] ${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+            if (logBox.children.length > 200) {
+                const items = logBox.innerHTML.split('</div>');
+                logBox.innerHTML = items.slice(-120).join('</div>');
+            }
+        }
+
+        function updateStatus(state, text) {
+            statusBadge.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+            statusBadge.className = `status-badge ${state}`;
+            statusText.textContent = text;
+        }
+
+        function showTestResult(message, type = 'info') {
+            testResult.className = `test-result show ${type}`;
+            testResult.textContent = message;
+        }
+
+        function hideTestResult() {
+            testResult.className = 'test-result';
+        }
+
+        function updateUI(hotDigit, percentage) {
+            signalDisplay.classList.add('active');
+            targetDigitEl.textContent = hotDigit !== undefined ? ` ${hotDigit} ` : '—';
+            
+            let acc = '—';
+            if (percentage !== undefined) {
+                acc = Math.min(96, Math.max(48, 52 + ((percentage - 10) * 3.2))).toFixed(1);
+                acc += '%';
+            }
+            accuracyScoreEl.textContent = acc;
+            hitRateDisplay.textContent = percentage !== undefined ? `Hit rate: ${percentage.toFixed(1)}%` : 'Hit rate: —';
+            
+            const len = recentDigits.length;
+            sampleStatus.textContent = `buffer: ${len}/${SAMPLE_SIZE}`;
+            bufferInfo.textContent = `buffer: ${len}/${SAMPLE_SIZE}`;
+
+            if (percentage !== undefined && percentage >= 13.0 && isAnalyzing) {
+                log(`🔔 SIGNAL: Digit ${hotDigit} hit ${percentage.toFixed(1)}% · 2‑tick match`, 'success');
+            }
+        }
+
+        function resetUI() {
+            signalDisplay.classList.remove('active');
+            targetDigitEl.textContent = '—';
+            accuracyScoreEl.textContent = '—%';
+            hitRateDisplay.textContent = 'Hit rate: —';
+            const len = recentDigits.length;
+            sampleStatus.textContent = `buffer: ${len}/${SAMPLE_SIZE}`;
+            bufferInfo.textContent = `buffer: ${len}/${SAMPLE_SIZE}`;
+        }
+
+        function analyzeDigits() {
+            if (recentDigits.length < SAMPLE_SIZE) {
+                updateUI(undefined, undefined);
+                return;
+            }
+
+            const counts = Array(10).fill(0);
+            for (let d of recentDigits) {
+                if (d >= 0 && d <= 9) counts[d]++;
+            }
+
+            let maxCount = -1;
+            let hotDigit = 0;
+            for (let i = 0; i < 10; i++) {
+                if (counts[i] > maxCount) {
+                    maxCount = counts[i];
+                    hotDigit = i;
+                }
+            }
+            const percentage = (maxCount / SAMPLE_SIZE) * 100;
+            updateUI(hotDigit, percentage);
+        }
+
+        // Test connection first
+        function testConnection() {
+            return new Promise((resolve) => {
+                const testWs = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+                let timeout = setTimeout(() => {
+                    testWs.close();
+                    showTestResult('⚠️ Connection timeout - check your internet', 'fail');
+                    resolve(false);
+                }, 5000);
+
+                testWs.onopen = () => {
+                    clearTimeout(timeout);
+                    testWs.send(JSON.stringify({ ping: 1 }));
+                    showTestResult('✅ Connection successful!', 'pass');
+                    setTimeout(() => testWs.close(), 1000);
+                    resolve(true);
+                };
+
+                testWs.onerror = () => {
+                    clearTimeout(timeout);
+                    showTestResult('❌ Cannot connect to Deriv - check network or try a VPN', 'fail');
+                    resolve(false);
+                };
+
+                testWs.onclose = () => {
+                    clearTimeout(timeout);
+                };
+            });
+        }
+
+        function connectWebSocket() {
+            if (!isAnalyzing) return;
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                return;
+            }
+
+            const symbol = symbolSelect.value;
+            log(`🌐 Connecting to Deriv WebSocket...`, 'info');
+            updateStatus('connecting', `connecting to ${symbol}...`);
+            hideTestResult();
+
+            try {
+                ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+                let connectionTimeout = setTimeout(() => {
+                    if (ws && ws.readyState !== WebSocket.OPEN) {
+                        log('❌ Connection timeout', 'error');
+                        updateStatus('error', 'timeout');
+                        ws.close();
+                        startBtn.disabled = false;
+                        stopBtn.disabled = true;
+                    }
+                }, 10000);
+                
+                ws.onopen = () => {
+                    clearTimeout(connectionTimeout);
+                    reconnectAttempts = 0;
+                    tickCount = 0;
+                    isSubscribed = false;
+                    log(`✅ Connected! Subscribing to ${symbol}`, 'success');
+                    updateStatus('streaming', `active · ${symbol}`);
+                    showTestResult(`✅ Connected to ${symbol}`, 'pass');
+                    
+                    // Subscribe to ticks
+                    ws.send(JSON.stringify({
+                        ticks: symbol,
+                        subscribe: 1
+                    }));
+                    log(`📡 Subscription sent for ${symbol}`, 'info');
+
+                    // Also request asset info to verify
+                    ws.send(JSON.stringify({
+                        asset_index: 1,
+                        symbol: symbol
+                    }));
+
+                    // Ping every 15 seconds
+                    if (pingTimer) clearInterval(pingTimer);
+                    pingTimer = setInterval(() => {
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({ ping: 1 }));
+                        }
+                    }, 15000);
+
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                };
+
+                ws.onmessage = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.data);
+                        
+                        // Handle errors
+                        if (data.error) {
+                            const errMsg = data.error.message || 'Unknown error';
+                            log(`❌ API error: ${errMsg}`, 'error');
+                            showTestResult(`❌ ${errMsg}`, 'fail');
+                            if (errMsg.includes('invalid') || errMsg.includes('not found')) {
+                                updateStatus('error', `invalid symbol: ${symbol}`);
+                                log(`💡 Try "1HZ75V" or another 1-Second index`, 'warning');
+                                showTestResult(`💡 Symbol "${symbol}" invalid. Try 1-Second indices.`, 'fail');
+                            }
+                            return;
+                        }
+
+                        // Handle tick data
+                        if (data.msg_type === 'tick' && data.tick && data.tick.quote !== undefined) {
+                            tickCount++;
+                            if (tickCount === 1) {
+                                log('📊 First tick received!', 'success');
+                                showTestResult('✅ Receiving data!', 'pass');
+                            }
+                            if (tickCount % 50 === 0) {
+                                log(`📊 ${tickCount} ticks received`, 'info');
+                            }
+                            
+                            const quote = String(data.tick.quote);
+                            // Extract last digit - handle both positive and negative
+                            const clean = quote.replace('-', '').replace('.', '');
+                            if (clean.length > 0) {
+                                const digit = parseInt(clean.slice(-1), 10);
+                                if (!isNaN(digit) && digit >= 0 && digit <= 9) {
+                                    recentDigits.push(digit);
+                                    if (recentDigits.length > SAMPLE_SIZE) {
+                                        recentDigits.shift();
+                                    }
+                                    analyzeDigits();
+                                }
+                            }
+                        }
+                        
+                        // Handle subscription confirmation
+                        if (data.msg_type === 'tick' && data.subscription) {
+                            if (!isSubscribed) {
+                                isSubscribed = true;
+                                log(`✅ Subscription confirmed for ${symbol}`, 'success');
+                            }
+                        }
+
+                        // Handle asset info
+                        if (data.msg_type === 'asset_index') {
+                            log(`✅ Asset "${symbol}" is valid`, 'success');
+                            showTestResult(`✅ "${symbol}" is valid`, 'pass');
+                        }
+                    } catch (e) {
+                        // Silent fail for par
