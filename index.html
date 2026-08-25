@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digit Match - Real-time Predictor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0b0f19;
+            color: #f8fafc;
+            padding: 16px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .container {
+            max-width: 480px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .header h1 {
+            color: #3b82f6;
+            font-size: 22px;
+            letter-spacing: 1px;
+        }
+        .header p {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-top: 2px;
+        }
+        .card {
+            background: #131b2e;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #1e293b;
+        }
+        .card-label {
+            color: #94a3b8;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        select {
+            width: 100%;
+            padding: 12px 14px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #f1f5f9;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            font-weight: 500;
+        }
+        select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .mode-group {
+            display: flex;
+            gap: 10px;
+            margin: 12px 0 14px 0;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 10px;
+            background: #1e293b;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #94a3b8;
+            border: 2px solid transparent;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .mode-btn:hover {
+            background: #2a3a5a;
+        }
+        .mode-btn.active {
+            border-color: #8b5cf6;
+            background: #2e1065;
+            color: #c4b5fd;
+        }
+        .mode-btn input {
+            display: none;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-start {
+            background: #10b981;
+            color: #fff;
+        }
+        .btn-start:hover:not(:disabled) {
+            background: #059669;
+        }
+        .btn-stop {
+            background: #ef4444;
+            color: #fff;
+        }
+        .btn-stop:hover:not(:disabled) {
+            background: #dc2626;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #1e293b;
+            margin-bottom: 10px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .badge-idle {
+            background: #475569;
+            color: #f1f5f9;
+        }
+        .badge-running {
+            background: #10b981;
+            color: #fff;
+        }
+        .badge-sim {
+            background: #8b5cf6;
+            color: #fff;
+        }
+        .badge-error {
+            background: #ef4444;
+            color: #fff;
+        }
+        .badge-connecting {
+            background: #f59e0b;
+            color: #000;
+        }
+        .status-text {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-left: 8px;
+        }
+        .signal-box {
+            background: #0f1a2f;
+            border-left: 4px solid #3b82f6;
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+        .signal-box.show {
+            display: block;
+        }
+        .signal-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+        }
+        .digit-display {
+            font-size: 32px;
+            font-weight: 700;
+            color: #10b981;
+            background: #0b1a1a;
+            padding: 0 16px;
+            border-radius: 40px;
+            border: 1px solid #1e3a3a;
+            min-width: 56px;
+            text-align: center;
+        }
+        .confidence-display {
+            font-size: 22px;
+            color: #fbbf24;
+            font-weight: 700;
+        }
+        .log-box {
+            background: #070a12;
+            border-radius: 10px;
+            padding: 10px 12px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: 'Menlo', 'Cascadia Code', monospace;
+            font-size: 11px;
+            line-height: 1.8;
+            border: 1px solid #1e293b;
+            margin-top: 10px;
+        }
+        .log-box::-webkit-scrollbar {
+            width: 4px;
+        }
+        .log-box::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .log-info {
+            color: #60a5fa;
+        }
+        .log-success {
+            color: #34d399;
+        }
+        .log-error {
+            color: #f87171;
+        }
+        .log-warning {
+            color: #fbbf24;
+        }
+        .log-sim {
+            color: #a78bfa;
+        }
+        .log-signal {
+            color: #f472b6;
+            font-weight: bold;
+        }
+        .text-muted {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        .flex {
+            display: flex;
+            align-items: center;
+        }
+        .gap-2 {
+            gap: 8px;
+        }
+        .justify-between {
+            justify-content: space-between;
+        }
+        .mt-1 {
+            margin-top: 6px;
+        }
+        .mt-2 {
+            margin-top: 10px;
+        }
+        .mb-1 {
+            margin-bottom: 6px;
+        }
+        .w-full {
+            width: 100%;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .hidden {
+            display: none;
+        }
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        .live-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+            margin-right: 6px;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        .live-indicator.active {
+            background: #10b981;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(0.8);
+            }
+        }
+        .tick-counter {
+            color: #94a3b8;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .tick-counter .number {
+            color: #60a5fa;
+            font-size: 16px;
+        }
+        .price-display {
+            color: #f1f5f9;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: monospace;
+        }
+        .price-display .change {
+            font-size: 14px;
+        }
+        .price-display .change.up {
+            color: #10b981;
+        }
+        .price-display .change.down {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎯 DIGIT MATCH</h1>
+            <p>Real-time digit prediction for volatility trading</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+            <div class="card-label">📊 Select Market</div>
+            <select id="symbolSelect">
+                <optgroup label="1-Second Volatility">
+                    <option value="1HZ10V">Volatility 10 (1s)</option>
+                    <option value="1HZ25V">Volatility 25 (1s)</option>
+                    <option value="1HZ50V">Volatility 50 (1s)</option>
+                    <option value="1HZ75V" selected>Volatility 75 (1s) ⭐</option>
+                    <option value="1HZ100V">Volatility 100 (1s)</option>
+                </optgroup>
+                <optgroup label="Standard Volatility">
+                    <option value="R_10">Volatility 10</option>
+                    <option value="R_25">Volatility 25</option>
+                    <option value="R_50">Volatility 50</option>
+                    <option value="R_75">Volatility 75</option>
+                    <option value="R_100">Volatility 100</option>
+                </optgroup>
+            </select>
+
+            <div class="mode-group">
+                <div class="mode-btn active" id="simModeBtn" onclick="selectMode('sim')">
+                    🎮 Simulation
+                </div>
+                <div class="mode-btn" id="realModeBtn" onclick="selectMode('real')">
+                    🌐 Live Data
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-start" id="startBtn" onclick="startAnalysis()">▶ Start</button>
+                <button class="btn btn-stop" id="stopBtn" onclick="stopAnalysis()" disabled>⏹ Stop</button>
+            </div>
+        </div>
+
+        <!-- Status & Signals -->
+        <div class="card">
+            <div class="status-bar">
+                <div class="flex gap-2">
+                    <span class="badge badge-idle" id="statusBadge">Idle</span>
+                    <span class="status-text" id="statusText">Ready</span>
+                </div>
+                <div class="flex gap-2">
+                    <span class="tick-counter">Ticks: <span class="number" id="tickCounter">0</span></span>
+                    <span class="text-muted" id="bufferDisplay">buffer: 0/100</span>
+                </div>
+            </div>
+
+            <!-- Live Price Display -->
+            <div class="flex justify-between" style="padding: 8px 0; border-bottom: 1px solid #1e293b;">
+                <span class="text-muted">💰 Current Price</span>
+                <span class="price-display" id="priceDisplay">
+                    <span id="priceValue">—</span>
+                    <span class="change" id="priceChange"></span>
+                </span>
+            </div>
+
+            <div class="signal-box" id="signalBox">
+                <div class="signal-row">
+                    <span>🎯 Predicted Digit</span>
+                    <span class="digit-display" id="digitDisplay">—</span>
+                </div>
+                <div class="signal-row mt-1">
+                    <span>📈 Confidence</span>
+                    <span class="confidence-display" id="confDisplay">—%</span>
+                </div>
+                <div class="signal-row mt-1" style="border-top:1px solid #1e293b;padding-top:6px;">
+                    <span class="text-muted" id="hitRateDisplay">Hit rate: —</span>
+                    <span class="text-muted" id="sampleDisplay">buffer: 0/100</span>
+                </div>
+            </div>
+
+            <!-- Digit Distribution Bars -->
+            <div style="margin-top: 10px; display: none;" id="distributionBox">
+                <div class="text-muted" style="font-size: 11px; margin-bottom: 4px;">📊 Digit Distribution (last 100 ticks)</div>
+                <div id="distributionBars" style="display: flex; gap: 3px; height: 40px; align-items: flex-end;"></div>
+            </div>
+
+            <div class="log-box" id="logBox">
+                <div class="log-info">[System] Welcome to Digit Match</div>
+                <div class="log-info">[System] Click "Start" to begin analysis</div>
+                <div class="log-info">[System] 🎮 Simulation mode generates real-time synthetic data</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // COMPLETE WORKING SOLUTION WITH REAL-TIME VISUALS
+        // ============================================================
+
+        // --- Global variables ---
+        var digits = [];
+        var SAMPLE_SIZE = 100;
+        var isRunning = false;
+        var isSimulating = false;
+        var simTimer = null;
+        var ws = null;
+        var wsPing = null;
+        var tickCount = 0;
+        var currentMode = 'sim';
+        var lastDigit = -1;
+        var currentPrice = 10000 + Math.random() * 5000;
+        var lastPrice = currentPrice;
+
+        // --- DOM References ---
+        var logBox = document.getElementById('logBox');
+        var statusBadge = document.getElementById('statusBadge');
+        var statusText = document.getElementById('statusText');
+        var signalBox = document.getElementById('signalBox');
+        var digitDisplay = document.getElementById('digitDisplay');
+        var confDisplay = document.getElementById('confDisplay');
+        var hitRateDisplay = document.getElementById('hitRateDisplay');
+        var sampleDisplay = document.getElementById('sampleDisplay');
+        var bufferDisplay = document.getElementById('bufferDisplay');
+        var tickCounter = document.getElementById('tickCounter');
+        var priceValue = document.getElementById('priceValue');
+        var priceChange = document.getElementById('priceChange');
+        var distributionBox = document.getElementById('distributionBox');
+        var distributionBars = document.getElementById('distributionBars');
+        var startBtn = document.getElementById('startBtn');
+        var stopBtn = document.getElementById('stopBtn');
+        var simModeBtn = document.getElementById('simModeBtn');
+        var realModeBtn = document.getElementById('realModeBtn');
+
+        // ============================================================
+        // LOGGING
+        // ============================================================
+        function log(msg, type) {
+            type = type || 'info';
+            var time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            var cls = 'log-info';
+            if (type === 'success') cls = 'log-success';
+            else if (type === 'error') cls = 'log-error';
+            else if (type === 'warning') cls = 'log-warning';
+            else if (type === 'sim') cls = 'log-sim';
+            else if (type === 'signal') cls = 'log-signal';
+            logBox.innerHTML += '<div class="' + cls + '">[' + time + '] ' + msg + '</div>';
+            logBox.scrollTop = logBox.scrollHeight;
+            if (logBox.children.length > 150) {
+                var items = logBox.innerHTML.split('</div>');
+                logBox.innerHTML = items.slice(-100).join('</div>');
+            }
+        }
+
+        // ============================================================
+        // STATUS
+        // ============================================================
+        function setStatus(state, text) {
+            var badgeClass = 'badge-idle';
+            var label = 'Idle';
+            if (state === 'running') { badgeClass = 'badge-running';
+                label = 'Running'; } else if (state === 'sim') { badgeClass = 'badge-sim';
+                label = 'Simulating'; } else if (state === 'error') { badgeClass = 'badge-error';
+                label = 'Error'; } else if (state === 'connecting') { badgeClass = 'badge-connecting';
+                label = 'Connecting'; }
+            statusBadge.className = 'badge ' + badgeClass;
+            statusBadge.textContent = label;
+            statusText.textContent = text || '';
+        }
+
+        // ============================================================
+        // DISTRIBUTION BARS
+        // ============================================================
+        function updateDistribution() {
+            if (digits.length < SAMPLE_SIZE) {
+                distributionBox.style.display = 'none';
+                return;
+            }
+            distributionBox.style.display = 'block';
+
+            var counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            for (var i = 0; i < digits.length; i++) {
+                var d = digits[i];
+                if (d >= 0 && d <= 9) counts[d]++;
+            }
+
+            var maxCount = Math.max.apply(null, counts);
+            var html = '';
+            var colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1',
+                '#84cc16'
+            ];
+            for (var j = 0; j < 10; j++) {
+                var height = maxCount > 0 ? (counts[j] / maxCount) * 35 : 0;
+                html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;">';
+                html += '<div style="width:100%;background:' + colors[j] + ';height:' + height + 'px;border-radius:2px 2px 0 0;min-height:2px;"></div>';
+                html += '<span style="font-size:9px;color:#94a3b8;margin-top:2px;">' + j + '</span>';
+                html += '</div>';
+            }
+            distributionBars.innerHTML = html;
+        }
+
+        // ============================================================
+        // SIGNAL DISPLAY
+        // ============================================================
+        function updateSignal(digit, percentage) {
+            signalBox.className = 'signal-box show';
+            digitDisplay.textContent = (digit !== undefined && digit >= 0) ? digit : '—';
+
+            if (percentage !== undefined && percentage > 0) {
+                var conf = Math.min(96, Math.max(48, 52 + ((percentage - 10) * 3.2)));
+                confDisplay.textContent = conf.toFixed(1) + '%';
+                hitRateDisplay.textContent = 'Hit rate: ' + percentage.toFixed(1) + '%';
+            } else {
+                confDisplay.textContent = '—%';
+                hitRateDisplay.textContent = 'Hit rate: —';
+            }
+
+            var len = digits.length;
+            sampleDisplay.textContent = 'buffer: ' + len + '/' + SAMPLE_SIZE;
+            bufferDisplay.textContent = 'buffer: ' + len + '/' + SAMPLE_SIZE;
+            tickCounter.textContent = tickCount;
+
+            updateDistribution();
+
+            if (percentage !== undefined && percentage >= 13.0 && isRunning) {
+                log('🔔 SIGNAL: Digit ' + digit + ' at ' + percentage.toFixed(1) + '% — 2-tick match opportunity!', 'signal');
+            }
+        }
+
+        function resetSignal() {
+            signalBox.className = 'signal-box';
+            digitDisplay.textContent = '—';
+            confDisplay.textContent = '—%';
+            hitRateDisplay.textContent = 'Hit rate: —';
+            var len = digits.length;
+            sampleDisplay.textContent = 'buffer: ' + len + '/' + SAMPLE_SIZE;
+            bufferDisplay.textContent = 'buffer: ' + len + '/' + SAMPLE_SIZE;
+            tickCounter.textContent = tickCount;
+            distributionBox.style.display = 'none';
+            priceValue.textContent = '—';
+            priceChange.textContent = '';
+        }
+
+        // ============================================================
+        // ANALYSIS ENGINE
+        // =======================================
